@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WooSearch Popup — Live Search Plugin for WooCommerce | By Aizaz Ali Afridi</title>
+<meta name="description" content="The most beautiful fullscreen search popup for WooCommerce. Live product search, category slider, trending tags. Free WordPress plugin.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══ RESET & BASE ═══ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:'Manrope',sans-serif;background:#0a0a0a;color:#f0ede8;overflow-x:hidden;cursor:none}
+
+/* ═══ CUSTOM CURSOR ═══ */
+#cursor{position:fixed;width:10px;height:10px;background:#fff;border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:transform .1s,background .2s;mix-blend-mode:difference}
+#cursor-ring{position:fixed;width:38px;height:38px;border:1.5px solid rgba(255,255,255,.5);border-radius:50%;pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:transform .18s cubic-bezier(.4,0,.2,1),width .2s,height .2s,border-color .2s}
+body:hover #cursor-ring{opacity:1}
+
+/* ═══ NOISE TEXTURE ═══ */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.6}
+
+/* ═══ NAV ═══ */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:20px 5vw;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);transition:background .3s}
+nav.scrolled{background:rgba(10,10,10,.85)}
+.nav-logo{font-family:'Manrope',sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.5px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px}
+.nav-logo span{background:#fff;color:#0a0a0a;padding:2px 7px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:1px}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{color:rgba(255,255,255,.6);text-decoration:none;font-size:14px;font-weight:400;transition:color .2s}
+.nav-links a:hover{color:#fff}
+.nav-cta{background:transparent;border:2px solid #fff;color:#fff;padding:9px 22px;border-radius:100px;font-size:13px;font-weight:500;font-family:'Manrope',sans-serif;text-decoration:none;transition:transform .2s,background .2s,border-color .2s;display:inline-block}
+.nav-cta:hover{transform:scale(1.05);background:rgba(255,255,255,.1);border-color:#fff;color:#fff}
+
+/* ═══ SECTIONS BASE ═══ */
+section{position:relative;z-index:1}
+
+/* ═══ HERO ═══ */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 5vw 80px;overflow:hidden}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.18);border-radius:100px;padding:6px 16px;font-size:12px;font-weight:500;color:rgba(255,255,255,.7);letter-spacing:.5px;margin-bottom:32px;opacity:0;animation:fadeUp .8s .2s forwards}
+.hero-badge::before{content:'';width:6px;height:6px;background:#4ade80;border-radius:50%;box-shadow:0 0 8px #4ade80}
+.hero-title{font-family:'Manrope',sans-serif;font-size:clamp(48px,8vw,100px);font-weight:800;line-height:.95;letter-spacing:-2px;margin-bottom:28px;opacity:0;animation:fadeUp .9s .35s forwards}
+.hero-title em{font-style:normal;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.4)}
+.hero-title .accent{position:relative;display:inline-block}
+.hero-title .accent::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:3px;background:linear-gradient(90deg,#fff,transparent);border-radius:2px}
+.hero-sub{font-size:clamp(16px,2vw,20px);font-weight:300;color:rgba(255,255,255,.55);max-width:560px;line-height:1.7;margin-bottom:44px;opacity:0;animation:fadeUp .9s .5s forwards}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;opacity:0;animation:fadeUp .9s .65s forwards}
+.btn-primary{background:#fff;color:#0a0a0a;padding:15px 36px;border-radius:100px;font-size:15px;font-weight:500;text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(255,255,255,.2)}
+.btn-secondary{border:1px solid rgba(255,255,255,.25);color:#fff;padding:15px 36px;border-radius:100px;font-size:15px;font-weight:400;text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
+.btn-secondary:hover{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.06)}
+
+/* floating orbs */
+.orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;animation:drift 8s ease-in-out infinite}
+.orb-1{width:500px;height:500px;background:radial-gradient(circle,rgba(255,255,255,.07),transparent 70%);top:-100px;right:-100px;animation-delay:0s}
+.orb-2{width:400px;height:400px;background:radial-gradient(circle,rgba(255,255,255,.05),transparent 70%);bottom:-50px;left:-80px;animation-delay:-4s}
+@keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(20px,30px)}}
+
+/* scroll indicator */
+.scroll-ind{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0;animation:fadeUp .9s 1.2s forwards}
+.scroll-ind span{font-size:11px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase}
+.scroll-line{width:1px;height:48px;background:linear-gradient(to bottom,rgba(255,255,255,.3),transparent);animation:scrollPulse 2s ease-in-out infinite}
+@keyframes scrollPulse{0%,100%{transform:scaleY(1);opacity:.6}50%{transform:scaleY(1.2);opacity:1}}
+
+/* ═══ DEMO SECTION ═══ */
+.demo-section{padding:100px 5vw;background:#0f0f0f}
+.section-label{font-size:11px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:16px}
+.section-title{font-family:'Manrope',sans-serif;font-size:clamp(32px,5vw,56px);font-weight:700;letter-spacing:-1px;line-height:1.1;margin-bottom:20px}
+.section-sub{font-size:17px;font-weight:300;color:rgba(255,255,255,.5);max-width:500px;line-height:1.7}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;margin-top:64px}
+@media(max-width:860px){.demo-grid{grid-template-columns:1fr}}
+
+/* mockup */
+.demo-mockup{background:#1a1a1a;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;box-shadow:0 40px 80px rgba(0,0,0,.5)}
+.mockup-bar{background:#141414;padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+.mockup-url{margin:0 auto;background:#0a0a0a;border-radius:6px;padding:4px 16px;font-size:11px;color:rgba(255,255,255,.3);width:200px;text-align:center}
+.mockup-content{padding:28px}
+
+/* search bar mock */
+.mock-search-bar{display:flex;border:1.5px solid rgba(255,255,255,.2);border-radius:6px;overflow:hidden;height:44px;margin-bottom:18px}
+.mock-sel{background:rgba(255,255,255,.05);border-right:1px solid rgba(255,255,255,.1);padding:0 12px;font-size:12px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:6px;min-width:110px}
+.mock-input{flex:1;background:transparent;padding:0 12px;font-size:13px;color:rgba(255,255,255,.7);display:flex;align-items:center}
+.mock-btn{background:#fff;width:44px;display:flex;align-items:center;justify-content:center}
+.mock-btn svg{width:16px;height:16px;stroke:#0a0a0a;fill:none;stroke-width:2;stroke-linecap:round}
+
+/* trending mock */
+.mock-trending{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px}
+.mock-tag{padding:4px 12px;border-radius:2px;font-size:11px;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.55)}
+.mock-tag.active-tag{background:#fff;color:#0a0a0a;border-color:#fff}
+
+/* category cards mock */
+.mock-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.mock-cat-card{background:rgba(255,255,255,.05);border-radius:6px;overflow:hidden;transition:transform .2s}
+.mock-cat-card:hover{transform:scale(1.04)}
+.mock-cat-img{aspect-ratio:1;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:22px}
+.mock-cat-label{padding:8px;font-size:10px;color:rgba(255,255,255,.6);text-align:center}
+
+/* live result mock */
+.mock-live{border:1px solid rgba(255,255,255,.1);border-radius:6px;overflow:hidden}
+.mock-result{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.mock-result:last-child{border-bottom:none}
+.mock-result-img{width:38px;height:38px;background:rgba(255,255,255,.08);border-radius:4px;flex-shrink:0}
+.mock-result-info{flex:1}
+.mock-result-name{font-size:12px;color:rgba(255,255,255,.8);margin-bottom:2px}
+.mock-result-cat{font-size:10px;color:rgba(255,255,255,.35)}
+.mock-result-price{font-size:12px;color:rgba(255,255,255,.7)}
+
+/* type animation */
+.typing{border-right:2px solid rgba(255,255,255,.7);animation:blink .7s step-end infinite;padding-right:2px}
+@keyframes blink{0%,100%{border-color:rgba(255,255,255,.7)}50%{border-color:transparent}}
+
+/* ═══ FEATURES ═══ */
+.features{padding:100px 5vw}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin-top:64px}
+.feat-card{background:#111;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:32px;transition:border-color .3s,transform .3s;cursor:default}
+.feat-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-4px)}
+.feat-icon{width:48px;height:48px;border-radius:10px;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:20px}
+.feat-title{font-family:'Manrope',sans-serif;font-size:17px;font-weight:600;margin-bottom:10px;color:#fff}
+.feat-desc{font-size:14px;font-weight:300;color:rgba(255,255,255,.5);line-height:1.7}
+
+/* ═══ HOW IT WORKS ═══ */
+.how{padding:100px 5vw;background:#0f0f0f}
+.steps{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0;margin-top:64px;position:relative}
+.steps::before{content:'';position:absolute;top:32px;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent)}
+.step{text-align:center;padding:0 24px}
+.step-num{font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.3);margin-bottom:16px;text-transform:uppercase}
+.step-circle{width:64px;height:64px;border-radius:50%;border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 20px;background:#0a0a0a;position:relative;z-index:1}
+.step-title{font-family:'Manrope',sans-serif;font-size:16px;font-weight:600;margin-bottom:10px}
+.step-desc{font-size:14px;color:rgba(255,255,255,.45);line-height:1.7}
+
+/* ═══ SHORTCODE SHOWCASE ═══ */
+.shortcodes{padding:100px 5vw}
+.sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:48px}
+@media(max-width:700px){.sc-grid{grid-template-columns:1fr}}
+.sc-card{background:#111;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;transition:border-color .2s}
+.sc-card:hover{border-color:rgba(255,255,255,.22)}
+.sc-code{font-family:'DM Mono',monospace,sans-serif;font-size:13px;color:#a8d8a8;background:rgba(168,216,168,.06);padding:8px 12px;border-radius:6px;flex:1}
+.sc-desc{font-size:12px;color:rgba(255,255,255,.4);min-width:120px;text-align:right}
+.sc-copy{background:rgba(255,255,255,.08);border:none;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Manrope',sans-serif;transition:background .15s;white-space:nowrap}
+.sc-copy:hover{background:rgba(255,255,255,.18)}
+.sc-copy.copied{background:rgba(74,222,128,.2);color:#4ade80}
+
+/* ═══ COMPATIBILITY ═══ */
+.compat{padding:80px 5vw;background:#0f0f0f}
+.compat-logos{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:48px}
+.compat-pill{border:1px solid rgba(255,255,255,.1);border-radius:100px;padding:10px 24px;font-size:13px;color:rgba(255,255,255,.55);transition:all .2s}
+.compat-pill:hover{border-color:rgba(255,255,255,.3);color:#fff}
+
+/* ═══ CTA SECTION ═══ */
+.cta-section{padding:120px 5vw;text-align:center;position:relative;overflow:hidden}
+.cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(255,255,255,.04),transparent)}
+.cta-title{font-family:'Manrope',sans-serif;font-size:clamp(36px,6vw,72px);font-weight:800;letter-spacing:-2px;line-height:1;margin-bottom:24px}
+.cta-sub{font-size:18px;font-weight:300;color:rgba(255,255,255,.5);margin-bottom:48px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.7}
+.cta-author{margin-top:48px;font-size:13px;color:rgba(255,255,255,.3)}
+.cta-author strong{color:rgba(255,255,255,.6)}
+
+/* ═══ FOOTER ═══ */
+footer{padding:40px 5vw;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-logo{font-family:'Manrope',sans-serif;font-weight:700;font-size:16px;color:rgba(255,255,255,.5)}
+.footer-copy{font-size:12px;color:rgba(255,255,255,.25)}
+
+/* ═══ SCROLL ANIMATIONS ═══ */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity .8s cubic-bezier(.4,0,.2,1),transform .8s cubic-bezier(.4,0,.2,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-left{opacity:0;transform:translateX(-50px);transition:opacity .8s cubic-bezier(.4,0,.2,1),transform .8s cubic-bezier(.4,0,.2,1)}
+.reveal-left.visible{opacity:1;transform:translateX(0)}
+.reveal-right{opacity:0;transform:translateX(50px);transition:opacity .8s cubic-bezier(.4,0,.2,1),transform .8s cubic-bezier(.4,0,.2,1)}
+.reveal-right.visible{opacity:1;transform:translateX(0)}
+.stagger-1{transition-delay:.1s}.stagger-2{transition-delay:.2s}.stagger-3{transition-delay:.3s}.stagger-4{transition-delay:.4s}.stagger-5{transition-delay:.5s}.stagger-6{transition-delay:.6s}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══ MARQUEE ═══ */
+.marquee-wrap{padding:40px 0;overflow:hidden;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);background:#0a0a0a}
+.marquee-track{display:flex;gap:48px;animation:marquee 22s linear infinite;white-space:nowrap}
+.marquee-track:hover{animation-play-state:paused}
+.marquee-item{font-family:'Manrope',sans-serif;font-size:13px;font-weight:600;letter-spacing:3px;color:rgba(255,255,255,.2);text-transform:uppercase;display:flex;align-items:center;gap:16px}
+.marquee-item::after{content:'✦';color:rgba(255,255,255,.1)}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ═══ COUNTER STATS ═══ */
+.stats{padding:80px 5vw;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1px;background:rgba(255,255,255,.06)}
+.stat{background:#0a0a0a;padding:48px 32px;text-align:center}
+.stat-num{font-family:'Manrope',sans-serif;font-size:clamp(36px,5vw,56px);font-weight:800;color:#fff;line-height:1;margin-bottom:10px}
+.stat-label{font-size:13px;color:rgba(255,255,255,.4);letter-spacing:.5px}
+
+@media(max-width:640px){
+  .nav-links{display:none}
+  .demo-grid{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr 1fr}
+  .steps::before{display:none}
+  .sc-grid{grid-template-columns:1fr}
+  footer{flex-direction:column;text-align:center}
+  #cursor,#cursor-ring{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- ═══ NAV ═══ -->
+<nav id="nav">
+  <a href="#" class="nav-logo">
+    WooSearch <span>POPUP</span>
+  </a>
+  <div class="nav-links">
+    <a href="#demo">Demo</a>
+    <a href="#features">Features</a>
+    <a href="#how">Install</a>
+    <a href="#shortcodes">Shortcodes</a>
+    <a href="#download" class="nav-cta">Free Download</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="hero-badge">✦ &nbsp; Free WordPress Plugin &nbsp; · &nbsp; WooCommerce Ready</div>
+
+  <h1 class="hero-title">
+    The Search<br>
+    Your Customers<br>
+    <span class="accent"><em>Deserve</em></span>
+  </h1>
+
+  <p class="hero-sub">
+    A fullscreen search popup with live product results, category slider &amp; trending tags.
+    Install once. Works with any theme.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#download" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download Free
+    </a>
+    <a href="#demo" class="btn-secondary">
+      See Live Demo →
+    </a>
+  </div>
+
+  <div class="scroll-ind">
+    <span>scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- ═══ MARQUEE ═══ -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <div class="marquee-item">Live Search</div>
+    <div class="marquee-item">Category Slider</div>
+    <div class="marquee-item">Trending Tags</div>
+    <div class="marquee-item">SKU Search</div>
+    <div class="marquee-item">Zero Config</div>
+    <div class="marquee-item">Any Theme</div>
+    <div class="marquee-item">Elementor Ready</div>
+    <div class="marquee-item">Mobile First</div>
+    <!-- duplicate for seamless loop -->
+    <div class="marquee-item">Live Search</div>
+    <div class="marquee-item">Category Slider</div>
+    <div class="marquee-item">Trending Tags</div>
+    <div class="marquee-item">SKU Search</div>
+    <div class="marquee-item">Zero Config</div>
+    <div class="marquee-item">Any Theme</div>
+    <div class="marquee-item">Elementor Ready</div>
+    <div class="marquee-item">Mobile First</div>
+  </div>
+</div>
+
+<!-- ═══ STATS ═══ -->
+<div class="stats">
+  <div class="stat reveal">
+    <div class="stat-num" data-target="100">0</div>
+    <div class="stat-label">% Free Forever</div>
+  </div>
+  <div class="stat reveal stagger-1">
+    <div class="stat-num" data-target="0">0</div>
+    <div class="stat-label">Config Required</div>
+  </div>
+  <div class="stat reveal stagger-2">
+    <div class="stat-num" data-suffix="ms" data-target="300">0</div>
+    <div class="stat-label">Search Response</div>
+  </div>
+  <div class="stat reveal stagger-3">
+    <div class="stat-num" data-suffix="+" data-target="20">0</div>
+    <div class="stat-label">Theme Compatible</div>
+  </div>
+</div>
+
+<!-- ═══ DEMO SECTION ═══ -->
+<section class="demo-section" id="demo">
+  <div class="demo-grid">
+    <div class="reveal-left">
+      <p class="section-label">Live Preview</p>
+      <h2 class="section-title">Search that<br>feels instant</h2>
+      <p class="section-sub">Type any product name, category, or SKU — results appear in milliseconds. Your customers find what they want, fast.</p>
+      <div style="margin-top:32px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:rgba(255,255,255,.55)">
+          <div style="width:6px;height:6px;background:#4ade80;border-radius:50%;flex-shrink:0"></div>
+          Search by product name, description &amp; SKU
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:rgba(255,255,255,.55)">
+          <div style="width:6px;height:6px;background:#4ade80;border-radius:50%;flex-shrink:0"></div>
+          Filter by category before searching
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;font-size:14px;color:rgba(255,255,255,.55)">
+          <div style="width:6px;height:6px;background:#4ade80;border-radius:50%;flex-shrink:0"></div>
+          Trending tags auto-generated from your store
+        </div>
+      </div>
+    </div>
+    <div class="reveal-right">
+      <div class="demo-mockup">
+        <div class="mockup-bar">
+          <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+          <div class="mockup-url">yourstore.com</div>
+        </div>
+        <div class="mockup-content">
+          <!-- Search bar -->
+          <div class="mock-search-bar">
+            <div class="mock-sel">All categories ▾</div>
+            <div class="mock-input"><span id="typing-demo" class="typing"></span></div>
+            <div class="mock-btn"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          </div>
+          <!-- Trending -->
+          <div class="mock-trending">
+            <span style="font-size:10px;color:rgba(255,255,255,.3);margin-right:4px">Trending:</span>
+            <span class="mock-tag active-tag">Shirt</span>
+            <span class="mock-tag">Shoes</span>
+            <span class="mock-tag">Cap</span>
+            <span class="mock-tag">Jacket</span>
+          </div>
+          <!-- Live results (shown when typing) -->
+          <div class="mock-live" id="mock-results" style="display:none;margin-bottom:16px">
+            <div class="mock-result">
+              <div class="mock-result-img" style="background:rgba(255,200,100,.15)"></div>
+              <div class="mock-result-info"><div class="mock-result-name">Nike Air Max 270</div><div class="mock-result-cat">Sneakers</div></div>
+              <div class="mock-result-price">Rs. 18,500</div>
+            </div>
+            <div class="mock-result">
+              <div class="mock-result-img" style="background:rgba(100,200,255,.15)"></div>
+              <div class="mock-result-info"><div class="mock-result-name">Nike React Infinity</div><div class="mock-result-cat">Running</div></div>
+              <div class="mock-result-price">Rs. 22,000</div>
+            </div>
+            <div class="mock-result">
+              <div class="mock-result-img" style="background:rgba(200,100,255,.15)"></div>
+              <div class="mock-result-info"><div class="mock-result-name">Adidas Ultraboost 23</div><div class="mock-result-cat">Running</div></div>
+              <div class="mock-result-price">Rs. 24,000</div>
+            </div>
+          </div>
+          <!-- Categories -->
+          <div class="mock-cats" id="mock-cats">
+            <div class="mock-cat-card"><div class="mock-cat-img">👟</div><div class="mock-cat-label">Sneakers</div></div>
+            <div class="mock-cat-card"><div class="mock-cat-img">👕</div><div class="mock-cat-label">Shirts</div></div>
+            <div class="mock-cat-card"><div class="mock-cat-img">🧢</div><div class="mock-cat-label">Caps</div></div>
+            <div class="mock-cat-card"><div class="mock-cat-img">🎒</div><div class="mock-cat-label">Bags</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section class="features" id="features">
+  <div style="text-align:center">
+    <p class="section-label reveal">Everything Included</p>
+    <h2 class="section-title reveal">Built for real stores</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card reveal stagger-1">
+      <div class="feat-icon">⚡</div>
+      <div class="feat-title">Live Search</div>
+      <div class="feat-desc">Results appear as you type with 300ms debounce. Searches product name, description and SKU simultaneously.</div>
+    </div>
+    <div class="feat-card reveal stagger-2">
+      <div class="feat-icon">📂</div>
+      <div class="feat-title">Category Slider</div>
+      <div class="feat-desc">All your WooCommerce categories displayed beautifully. Auto-switches to slider when 7+ categories exist.</div>
+    </div>
+    <div class="feat-card reveal stagger-3">
+      <div class="feat-icon">🔥</div>
+      <div class="feat-title">Smart Trending Tags</div>
+      <div class="feat-desc">Auto-generated from your actual product names and category names. Never shows if store is empty.</div>
+    </div>
+    <div class="feat-card reveal stagger-4">
+      <div class="feat-icon">🎨</div>
+      <div class="feat-title">Inherits Theme Font</div>
+      <div class="feat-desc">Uses your theme's global font family. No visual conflicts. Matches your brand perfectly.</div>
+    </div>
+    <div class="feat-card reveal stagger-5">
+      <div class="feat-icon">📱</div>
+      <div class="feat-title">Mobile Optimized</div>
+      <div class="feat-desc">Stacks gracefully on small screens. Touch-friendly arrows and card sizes adapt automatically.</div>
+    </div>
+    <div class="feat-card reveal stagger-6">
+      <div class="feat-icon">🔧</div>
+      <div class="feat-title">Zero Conflicts</div>
+      <div class="feat-desc">Compatible with Elementor, Divi, Astra, OceanWP, GeneratePress, WPBakery and 20+ major themes.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="how" id="how">
+  <div style="text-align:center">
+    <p class="section-label reveal">Installation</p>
+    <h2 class="section-title reveal">Up in 3 steps</h2>
+  </div>
+  <div class="steps">
+    <div class="step reveal stagger-1">
+      <div class="step-num">Step 01</div>
+      <div class="step-circle">📦</div>
+      <div class="step-title">Upload Plugin</div>
+      <div class="step-desc">WordPress Admin → Plugins → Add New → Upload ZIP → Activate</div>
+    </div>
+    <div class="step reveal stagger-2">
+      <div class="step-num">Step 02</div>
+      <div class="step-circle">📋</div>
+      <div class="step-title">Copy Shortcode</div>
+      <div class="step-desc">Settings → Search Popup → Copy any shortcode with one click</div>
+    </div>
+    <div class="step reveal stagger-3">
+      <div class="step-num">Step 03</div>
+      <div class="step-circle">✅</div>
+      <div class="step-title">Paste &amp; Done</div>
+      <div class="step-desc">Paste in Elementor HTML widget or any widget area in your header</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SHORTCODES ═══ -->
+<section class="shortcodes" id="shortcodes">
+  <p class="section-label reveal">Shortcodes</p>
+  <h2 class="section-title reveal">Copy &amp; paste anywhere</h2>
+  <p style="color:rgba(255,255,255,.45);font-size:16px;font-weight:300;margin-top:16px;max-width:500px" class="reveal">Works in Elementor, Classic widgets, theme builders and PHP templates.</p>
+
+  <div class="sc-grid">
+    <div class="sc-card reveal stagger-1">
+      <code class="sc-code">[wsp_search_button]</code>
+      <span class="sc-desc">Icon only</span>
+      <button class="sc-copy" onclick="copyCode(this,'[wsp_search_button]')">Copy</button>
+    </div>
+    <div class="sc-card reveal stagger-2">
+      <code class="sc-code">[wsp_search_button label="Search"]</code>
+      <span class="sc-desc">Icon + label</span>
+      <button class="sc-copy" onclick="copyCode(this,'[wsp_search_button label=&quot;Search&quot;]')">Copy</button>
+    </div>
+    <div class="sc-card reveal stagger-3">
+      <code class="sc-code">[wsp_search_button label="Find Products"]</code>
+      <span class="sc-desc">Custom label</span>
+      <button class="sc-copy" onclick="copyCode(this,'[wsp_search_button label=&quot;Find Products&quot;]')">Copy</button>
+    </div>
+    <div class="sc-card reveal stagger-4">
+      <code class="sc-code">&lt;?php echo do_shortcode('[wsp_search_button]'); ?&gt;</code>
+      <span class="sc-desc">In PHP template</span>
+      <button class="sc-copy" onclick="copyCode(this,`<?php echo do_shortcode('[wsp_search_button]'); ?>`)">Copy</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ COMPATIBILITY ═══ -->
+<section class="compat">
+  <div style="text-align:center">
+    <p class="section-label reveal">Compatibility</p>
+    <h2 class="section-title reveal" style="margin-bottom:0">Works with every theme</h2>
+  </div>
+  <div class="compat-logos reveal">
+    <div class="compat-pill">Elementor</div>
+    <div class="compat-pill">Divi</div>
+    <div class="compat-pill">Astra</div>
+    <div class="compat-pill">OceanWP</div>
+    <div class="compat-pill">GeneratePress</div>
+    <div class="compat-pill">Flatsome</div>
+    <div class="compat-pill">Storefront</div>
+    <div class="compat-pill">Avada</div>
+    <div class="compat-pill">BeTheme</div>
+    <div class="compat-pill">WPBakery</div>
+    <div class="compat-pill">Beaver Builder</div>
+    <div class="compat-pill">Kadence</div>
+    <div class="compat-pill">Blocksy</div>
+    <div class="compat-pill">Hello Theme</div>
+    <div class="compat-pill">+ Any Theme</div>
+  </div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<section class="cta-section" id="download">
+  <h2 class="cta-title reveal">Ready to upgrade<br>your search?</h2>
+  <p class="cta-sub reveal stagger-1">Download the plugin, install in 60 seconds, and give your customers the search experience they deserve.</p>
+  <div class="reveal stagger-2" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+    <a href="woo-search-popup.zip" download class="btn-primary" style="font-size:16px;padding:18px 44px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download Free — v1.1.0
+    </a>
+  </div>
+  <p class="cta-author reveal stagger-3">Developed with ♥ by <strong>Aizaz Ali Afridi</strong> &nbsp;·&nbsp; 100% Free &nbsp;·&nbsp; GPL Licensed</p>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-logo">WooSearch Popup</div>
+  <div class="footer-copy">© 2024 Aizaz Ali Afridi · Free WordPress Plugin · GPL-2.0</div>
+</footer>
+
+<script>
+/* ── CURSOR ── */
+var cur=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+document.addEventListener('mousemove',function(e){
+  cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';
+  ring.style.left=e.clientX+'px';ring.style.top=e.clientY+'px';
+});
+document.querySelectorAll('a,button,.feat-card,.sc-card,.mock-cat-card').forEach(function(el){
+  el.addEventListener('mouseenter',function(){ring.style.width='60px';ring.style.height='60px';ring.style.borderColor='rgba(255,255,255,.8)';});
+  el.addEventListener('mouseleave',function(){ring.style.width='38px';ring.style.height='38px';ring.style.borderColor='rgba(255,255,255,.5)';});
+});
+
+/* ── NAV SCROLL ── */
+window.addEventListener('scroll',function(){
+  document.getElementById('nav').classList.toggle('scrolled',window.scrollY>60);
+});
+
+/* ── SCROLL REVEAL ── */
+var revealEls=document.querySelectorAll('.reveal,.reveal-left,.reveal-right');
+var observer=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');}});
+},{threshold:.15,rootMargin:'0px 0px -40px 0px'});
+revealEls.forEach(function(el){observer.observe(el);});
+
+/* ── COUNTER ANIMATION ── */
+function animateCounter(el){
+  var target=parseInt(el.dataset.target)||0;
+  var suffix=el.dataset.suffix||'';
+  var start=0,dur=1800,step=16;
+  var timer=setInterval(function(){
+    start+=target/(dur/step);
+    if(start>=target){start=target;clearInterval(timer);}
+    el.textContent=Math.floor(start)+suffix;
+  },step);
+}
+var statObs=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.isIntersecting){animateCounter(e.target);statObs.unobserve(e.target);}
+  });
+},{threshold:.5});
+document.querySelectorAll('.stat-num').forEach(function(el){statObs.observe(el);});
+
+/* ── TYPING DEMO ANIMATION ── */
+var words=['Nike Air Max...','Running Shoes...','Cooking Oils...','Gift Boxes...','Jacket...'];
+var wi=0,ci=0,deleting=false;
+var typingEl=document.getElementById('typing-demo');
+var mockResults=document.getElementById('mock-results');
+var mockCats=document.getElementById('mock-cats');
+function typeLoop(){
+  if(!typingEl)return;
+  var word=words[wi];
+  if(!deleting){
+    typingEl.textContent=word.substring(0,ci+1);
+    ci++;
+    if(ci>=word.length){
+      deleting=true;
+      mockResults.style.display='block';
+      mockCats.style.display='none';
+      setTimeout(typeLoop,2000);return;
+    }
+  }else{
+    typingEl.textContent=word.substring(0,ci-1);
+    ci--;
+    if(ci===0){
+      deleting=false;
+      wi=(wi+1)%words.length;
+      mockResults.style.display='none';
+      mockCats.style.display='grid';
+    }
+  }
+  setTimeout(typeLoop,deleting?55:90);
+}
+setTimeout(typeLoop,1500);
+
+/* ── SHORTCODE COPY ── */
+function copyCode(btn,text){
+  if(navigator.clipboard){navigator.clipboard.writeText(text);}
+  else{var t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);}
+  btn.textContent='Copied!';btn.classList.add('copied');
+  setTimeout(function(){btn.textContent='Copy';btn.classList.remove('copied');},1600);
+}
+
+/* ── PARALLAX ORBS ── */
+window.addEventListener('scroll',function(){
+  var s=window.scrollY;
+  document.querySelectorAll('.orb-1').forEach(function(o){o.style.transform='translate('+s*.05+'px,'+s*.08+'px)';});
+  document.querySelectorAll('.orb-2').forEach(function(o){o.style.transform='translate(-'+s*.04+'px,-'+s*.06+'px)';});
+});
+</script>
+</body>
+</html>
